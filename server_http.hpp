@@ -252,7 +252,8 @@ namespace SimpleWeb {
                     //streambuf (maybe some bytes of the content) is appended to in the async_read-function below (for retrieving content).
                     size_t num_additional_bytes=request->streambuf.size()-bytes_transferred;
                     
-                    parse_request(request, request->content);
+                    if(!parse_request(request, request->content))
+                        return;
                     
                     //If content, read that as well
                     auto it=request->header.find("Content-Length");
@@ -292,7 +293,7 @@ namespace SimpleWeb {
             });
         }
 
-        void parse_request(std::shared_ptr<Request> request, std::istream& stream) const {
+        bool parse_request(std::shared_ptr<Request> request, std::istream& stream) const {
             std::string line;
             getline(stream, line);
             size_t method_end;
@@ -301,10 +302,15 @@ namespace SimpleWeb {
                 if((path_end=line.find(' ', method_end+1))!=std::string::npos) {
                     request->method=line.substr(0, method_end);
                     request->path=line.substr(method_end+1, path_end-method_end-1);
-                    if((path_end+6)<line.size())
-                        request->http_version=line.substr(path_end+6, line.size()-(path_end+6)-1);
+
+                    size_t protocol_end;
+                    if((protocol_end=line.find('/', path_end+1))!=std::string::npos) {
+                        if(line.substr(path_end+1, protocol_end-path_end-1)!="HTTP")
+                            return false;
+                        request->http_version=line.substr(protocol_end+1, line.size()-protocol_end-2);
+                    }
                     else
-                        request->http_version="1.0";
+                        return false;
 
                     getline(stream, line);
                     size_t param_end;
@@ -320,7 +326,12 @@ namespace SimpleWeb {
                         getline(stream, line);
                     }
                 }
+                else
+                    return false;
             }
+            else
+                return false;
+            return true;
         }
 
         void find_resource(std::shared_ptr<socket_type> socket, std::shared_ptr<Request> request) {
@@ -376,6 +387,12 @@ namespace SimpleWeb {
                 }
                 catch(const std::exception &e) {
                     return;
+                }
+                
+                auto range=request->header.equal_range("Connection");
+                for(auto it=range.first;it!=range.second;it++) {
+                    if(boost::iequals(it->second, "close"))
+                        return;
                 }
                 if(http_version>1.05)
                     read_request_and_content(socket);
