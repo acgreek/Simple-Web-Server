@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.8.8)
 project (Simple-Web-Server)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.8)
@@ -20,7 +20,7 @@ include_directories(.)
 
 find_package(Threads REQUIRED)
 
-find_package(Boost 1.54.0 COMPONENTS regex system thread coroutine context filesystem date_time REQUIRED)
+find_package(Boost 1.54.0 COMPONENTS regex system thread filesystem date_time REQUIRED)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 if(APPLE)
@@ -49,4 +49,4 @@ if(MSYS) #TODO: Is MSYS true when MSVC is true?
 endif()
 
 enable_testing()
-add_subdirectory(test)
+add_subdirectory(tests)
